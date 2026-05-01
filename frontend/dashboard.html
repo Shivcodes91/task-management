@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <h2>Dashboard</h2>
+
+  <!-- Projects Section -->
+  <section>
+    <h3>Projects</h3>
+    <button onclick="loadProjects()">Load Projects</button>
+    <ul id="projects"></ul>
+  </section>
+
+  <!-- Create Project -->
+  <section>
+    <h3>Create Project</h3>
+    <input id="projectName" placeholder="Project Name">
+    <button onclick="createProject()">Create</button>
+  </section>
+
+  <!-- Create Task -->
+  <section>
+    <h3>Create Task</h3>
+
+    <input id="taskTitle" placeholder="Task Title"><br>
+    <input id="taskDesc" placeholder="Description"><br>
+    <input id="projectId" placeholder="Project ID"><br>
+    <input id="assignedTo" placeholder="Assign User ID"><br>
+    <input id="dueDate" type="date"><br>
+
+    <button onclick="createTask()">Create Task</button>
+  </section>
+
+  <!-- Tasks -->
+  <section>
+    <h3>All Tasks</h3>
+    <button onclick="loadTasks()">Load Tasks</button>
+    <ul id="tasks"></ul>
+  </section>
+
+  <!-- Stats -->
+  <section>
+    <h3>Stats</h3>
+    <p>Total: <span id="total">0</span></p>
+    <p>Completed: <span id="completed">0</span></p>
+    <p>Pending: <span id="pending">0</span></p>
+    <p>Overdue: <span id="overdue">0</span></p>
+  </section>
+
+  <script src="js/app.js"></script>
+
+</body>
+</html>
