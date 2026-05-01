@@ -5,42 +5,62 @@ const db = require("../db/database");
 
 const router = express.Router();
 
-// Signup
+// ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
   const { name, email, password, role } = req.body;
 
-  const hashed = await bcrypt.hash(password, 10);
-
   try {
-    db.prepare(
-      "INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)"
-    ).run(name, email, hashed, role);
+    const hashed = await bcrypt.hash(password, 10);
 
-    res.json({ message: "User created" });
+    db.run(
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      [name, email, hashed, role || "member"],
+      function (err) {
+        if (err) {
+          return res.status(400).json({ error: "Email already exists" });
+        }
+
+        res.json({ message: "User created", id: this.lastID });
+      }
+    );
   } catch (err) {
-    res.status(400).json({ error: "Email already exists" });
+    console.error("Signup error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// Login
-router.post("/login", async (req, res) => {
+// ---------------- LOGIN ----------------
+router.post("/login", (req, res) => {
   const { email, password } = req.body;
 
-  const user = db
-    .prepare("SELECT * FROM users WHERE email=?")
-    .get(email);
+  db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
+    if (err) {
+      console.error("DB error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
 
-  if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ error: "Invalid password" });
+    try {
+      const match = await bcrypt.compare(password, user.password);
 
-  const token = jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET
-  );
+      if (!match) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
 
-  res.json({ token });
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET
+      );
+
+      res.json({ token });
+    } catch (err) {
+      console.error("Login error:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
 });
 
 module.exports = router;
