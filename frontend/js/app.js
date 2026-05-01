@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "https://task-management-production-084d.up.railway.app/api";
 
 // ---------------- AUTH ----------------
 
