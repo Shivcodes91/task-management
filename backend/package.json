@@ -4,8 +4,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-  "start": "npm rebuild sqlite3 && node server.js"
-}
+    "start": "npm rebuild sqlite3 && node server.js"
   },
   "keywords": [],
   "author": "",
