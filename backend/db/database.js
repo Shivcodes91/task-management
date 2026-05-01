@@ -1,44 +1,25 @@
-const sqlite3 = require("sqlite3").verbose();
+const { Low } = require("lowdb");
+const { JSONFile } = require("lowdb/node");
 
-const db = new sqlite3.Database("./database.db", (err) => {
-  if (err) {
-    console.error("❌ DB Error:", err);
-  } else {
-    console.log("✅ Connected to SQLite DB");
+const adapter = new JSONFile("database.json");
+const db = new Low(adapter);
 
-    // USERS
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT UNIQUE,
-        password TEXT,
-        role TEXT DEFAULT 'member'
-      )
-    `);
+// Initialize DB
+async function initDB() {
+  await db.read();
 
-    // PROJECTS
-    db.run(`
-      CREATE TABLE IF NOT EXISTS projects (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        created_by INTEGER
-      )
-    `);
+  db.data ||= {
+    users: [],
+    projects: [],
+    tasks: [],
+    project_members: []
+  };
 
-    // TASKS
-    db.run(`
-      CREATE TABLE IF NOT EXISTS tasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        description TEXT,
-        status TEXT DEFAULT 'todo',
-        project_id INTEGER,
-        assigned_to INTEGER,
-        due_date TEXT
-      )
-    `);
-  }
-});
+  await db.write();
+
+  console.log("✅ JSON DB Ready");
+}
+
+initDB();
 
 module.exports = db;

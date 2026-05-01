@@ -6,53 +6,69 @@ const role = require("../middleware/role");
 const router = express.Router();
 
 // ---------------- CREATE PROJECT (Admin only) ----------------
-router.post("/", auth, role("admin"), (req, res) => {
-  console.log("USER:", req.user);
+router.post("/", auth, role("admin"), async (req, res) => {
+  try {
+    await db.read();
 
-  const { name } = req.body;
+    console.log("USER:", req.user);
 
-  db.run(
-    "INSERT INTO projects (name, created_by) VALUES (?, ?)",
-    [name, req.user.id],
-    function (err) {
-      if (err) {
-        console.error("Create project error:", err);
-        return res.status(500).json({ error: "Failed to create project" });
-      }
+    const { name } = req.body;
 
-      res.json({ id: this.lastID });
+    if (!name) {
+      return res.status(400).json({ error: "Project name required" });
     }
-  );
+
+    const newProject = {
+      id: Date.now(),
+      name,
+      created_by: req.user.id
+    };
+
+    db.data.projects.push(newProject);
+    await db.write();
+
+    res.json(newProject);
+
+  } catch (err) {
+    console.error("Create project error:", err);
+    res.status(500).json({ error: "Failed to create project" });
+  }
 });
 
 // ---------------- GET PROJECTS ----------------
-router.get("/", auth, (req, res) => {
-  db.all("SELECT * FROM projects", [], (err, rows) => {
-    if (err) {
-      console.error("Fetch projects error:", err);
-      return res.status(500).json({ error: "Failed to fetch projects" });
-    }
-
-    res.json(rows);
-  });
+router.get("/", auth, async (req, res) => {
+  try {
+    await db.read();
+    res.json(db.data.projects);
+  } catch (err) {
+    console.error("Fetch projects error:", err);
+    res.status(500).json({ error: "Failed to fetch projects" });
+  }
 });
 
 // ---------------- ADD MEMBER ----------------
-router.post("/:id/add-member", auth, role("admin"), (req, res) => {
-  const { userId } = req.body;
+router.post("/:id/add-member", auth, role("admin"), async (req, res) => {
+  try {
+    await db.read();
 
-  db.run(
-    "INSERT INTO project_members (project_id, user_id) VALUES (?, ?)",
-    [req.params.id, userId],
-    function (err) {
-      if (err) {
-        console.error("Add member error:", err);
-        return res.status(500).json({ error: "Failed to add member" });
-      }
+    const { userId } = req.body;
+    const projectId = Number(req.params.id);
 
-      res.json({ message: "Member added" });
-    }
-  );
+    const newMember = {
+      id: Date.now(),
+      project_id: projectId,
+      user_id: userId
+    };
+
+    db.data.project_members.push(newMember);
+    await db.write();
+
+    res.json({ message: "Member added" });
+
+  } catch (err) {
+    console.error("Add member error:", err);
+    res.status(500).json({ error: "Failed to add member" });
+  }
 });
 
 module.exports = router;

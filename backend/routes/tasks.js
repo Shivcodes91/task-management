@@ -5,52 +5,72 @@ const auth = require("../middleware/auth");
 const router = express.Router();
 
 // ---------------- CREATE TASK ----------------
-router.post("/", auth, (req, res) => {
-  const { title, description, project_id, assigned_to, due_date } = req.body;
+router.post("/", auth, async (req, res) => {
+  try {
+    await db.read();
 
-  db.run(
-    `INSERT INTO tasks (title, description, project_id, assigned_to, due_date)
-     VALUES (?, ?, ?, ?, ?)`,
-    [title, description, project_id, assigned_to, due_date],
-    function (err) {
-      if (err) {
-        console.error("Create task error:", err);
-        return res.status(500).json({ error: "Failed to create task" });
-      }
+    const { title, description, project_id, assigned_to, due_date } = req.body;
 
-      res.json({ id: this.lastID });
+    if (!title || !project_id) {
+      return res.status(400).json({ error: "Title and Project ID required" });
     }
-  );
+
+    const newTask = {
+      id: Date.now(),
+      title,
+      description: description || "",
+      project_id: Number(project_id),
+      assigned_to: assigned_to ? Number(assigned_to) : null,
+      due_date: due_date || null,
+      status: "todo"
+    };
+
+    db.data.tasks.push(newTask);
+    await db.write();
+
+    res.json(newTask);
+
+  } catch (err) {
+    console.error("Create task error:", err);
+    res.status(500).json({ error: "Failed to create task" });
+  }
 });
 
 // ---------------- GET TASKS ----------------
-router.get("/", auth, (req, res) => {
-  db.all("SELECT * FROM tasks", [], (err, rows) => {
-    if (err) {
-      console.error("Fetch tasks error:", err);
-      return res.status(500).json({ error: "Failed to fetch tasks" });
-    }
-
-    res.json(rows);
-  });
+router.get("/", auth, async (req, res) => {
+  try {
+    await db.read();
+    res.json(db.data.tasks);
+  } catch (err) {
+    console.error("Fetch tasks error:", err);
+    res.status(500).json({ error: "Failed to fetch tasks" });
+  }
 });
 
 // ---------------- UPDATE TASK STATUS ----------------
-router.patch("/:id", auth, (req, res) => {
-  const { status } = req.body;
+router.patch("/:id", auth, async (req, res) => {
+  try {
+    await db.read();
 
-  db.run(
-    "UPDATE tasks SET status = ? WHERE id = ?",
-    [status, req.params.id],
-    function (err) {
-      if (err) {
-        console.error("Update task error:", err);
-        return res.status(500).json({ error: "Failed to update task" });
-      }
+    const taskId = Number(req.params.id);
+    const { status } = req.body;
 
-      res.json({ message: "Updated" });
+    const task = db.data.tasks.find(t => t.id === taskId);
+
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
     }
-  );
+
+    task.status = status || task.status;
+
+    await db.write();
+
+    res.json({ message: "Updated", task });
+
+  } catch (err) {
+    console.error("Update task error:", err);
+    res.status(500).json({ error: "Failed to update task" });
+  }
 });
 
 module.exports = router;
